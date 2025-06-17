@@ -1,0 +1,91 @@
+{
+    "district": "বাকরগঞ্জ",
+    "Thana": "হিজলা",
+    "Touji_No": "28",
+    "Mouja": "চর কুশারিয়া",
+    "J.L_No": "76",
+    "Khatian_No": "157",
+    "Khatian_Type": "S.A",
+    "Plots": [
+        {
+            "Plot_No": 308,
+            "Total_Land": 6,
+            "Share": 1
+        },
+        {
+            "Plot_No": 309,
+            "Total_Land": 114,
+            "Share": 1
+        },
+        {
+            "Plot_No": 405,
+            "Total_Land": 20,
+            "Share": 1
+        },
+        {
+            "Plot_No": 418,
+            "Total_Land": 54,
+            "Share": 1
+        },
+        {
+            "Plot_No": 417,
+            "Total_Land": 57,
+            "Share": 1
+        },
+        {
+            "Plot_No": 416,
+            "Total_Land": 51,
+            "Share": 1
+        },
+        {
+            "Plot_No": 416,
+            "Total_Land": 51,
+            "Share": 1
+        },
+        {
+            "Plot_No": 403,
+            "Total_Land": 64,
+            "Share": 1
+        },
+        {
+            "Plot_No": 406,
+            "Total_Land": 15,
+            "Share": 1
+        },
+        {
+            "Plot_No": 406,
+            "Total_Land": 15,
+            "Share": 1
+        },
+        {
+            "Plot_No": 404,
+            "Total_Land": 16,
+            "Share": 1
+        },
+        {
+            "Plot_No": 401,
+            "Total_Land": 7,
+            "Share": 1
+        },
+        {
+            "Plot_No": 402,
+            "Total_Land": 2,
+            "Share": 1
+        },
+        {
+            "Plot_No": 800,
+            "Total_Land": 46,
+            "Share": 1
+        },
+        {
+            "Plot_No": 815,
+            "Total_Land": 100,
+            "Share": 1
+        },
+        {
+            "Plot_No": 816,
+            "Total_Land": 88,
+            "Share": 1
+        }
+    ]
+}
