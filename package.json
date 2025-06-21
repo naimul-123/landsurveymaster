@@ -1,5 +1,5 @@
 {
-  "name": "nibir",
+  "name": "landsurveymaster",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -20,5 +20,21 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
     "tailwindcss": "^4"
-  }
+  },
+  "description": "a app that survey land accurately",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naimul-123/landsurveymaster.git"
+  },
+  "keywords": [
+    "land",
+    "survey"
+  ],
+  "author": "naimul islam",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/naimul-123/landsurveymaster/issues"
+  },
+  "homepage": "https://github.com/naimul-123/landsurveymaster#readme"
 }

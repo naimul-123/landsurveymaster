@@ -87,5 +87,52 @@
             "Total_Land": 88,
             "Share": 1
         }
+    ],
+    "owners": [
+        {
+            "name": "",
+            "share": 0.25,
+            "transfer": [
+                {
+                    "transfarType": "",
+                    "owners": [
+                        {
+                            "name": "",
+                            "share": 0.25,
+                            "transfer": [
+                                {
+                                    "transfarType": "",
+                                    "owners": [
+                                        {
+                                            "name": "",
+                                            "share": 0.25,
+                                            "transfer": [
+                                                {
+                                                    "transfarType": "",
+                                                    "owners": [
+                                                        {
+                                                            "name": "",
+                                                            "share": 0.25,
+                                                            "transfer": [
+                                                                {
+                                                                    "transfarType": "",
+                                                                    "owners": [
+                                                                        {}
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
     ]
 }
