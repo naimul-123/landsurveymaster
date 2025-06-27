@@ -1,5 +1,5 @@
 'use client';
-import { The_Nautigal } from 'next/font/google';
+
 import { useEffect, useState } from 'react';
 import HissaCalculator from '../HissaCalculator';
 
@@ -7,7 +7,7 @@ export default function LandForm() {
     const data = {
         "district": "",
         "thana": "",
-        "touji_No": "",
+        "touji": "",
         "mouja": "",
         "j.l_no": "",
         "khatian_No": "",
@@ -17,28 +17,54 @@ export default function LandForm() {
         "totalLand": 0
     }
     const [landInfo, setLandInfo] = useState(data)
-
+    const [isDecimal, setIsDecimal] = useState(false);
     const [ownersTotalShare, setOwnersTotalShare] = useState(0)
-    useEffect(() => {
-        const totalShare = landInfo?.owners?.reduce((totalShare, owner) => totalShare + Number(owner.share) || 0, 0)
-        setOwnersTotalShare(totalShare)
-    }, [landInfo.owners]);
+
+
     const handleOwnerChange = (index, field, value) => {
-        if (field === "share" && Number(value) + Number(ownersTotalShare) > 1) {
-            alert('মালিকানার মোট হিস্যা 1  এর বেশি হতে পারবে না।')
-            return
+        if (field === "share") {
+            const otherSharesTotal = landInfo?.owners?.reduce((total, owner, i) => {
+                if (i !== index) {
+                    return total + Number(owner.share || 0);
+                }
+                return total;
+            }, 0);
+
+            const newTotalShare = Number((otherSharesTotal + Number(value || 0)).toFixed(10));
+
+            if (newTotalShare > 1) {
+                alert('মালিকানার মোট হিস্যা 1 এর বেশি হতে পারবে না।');
+                return;
+            }
+
+            setOwnersTotalShare(newTotalShare);
+
         }
-        const owners = [...landInfo?.owners]; // create a shallow copy of the owners array
+
+        else {
+            // নাম পরিবর্তন হলে শেয়ারের টোটাল অপরিবর্তিত থাকবে
+            const totalShare = landInfo?.owners?.reduce((total, owner) => total + Number(owner.share || 0), 0);
+            setOwnersTotalShare(Number(totalShare.toFixed(10)));
+        }
+
+        const owners = [...landInfo?.owners];
         owners[index] = {
             ...owners[index],
-            [field]: value, // update the specific field (name or share)
+            [field]: value,
         };
         setLandInfo(prev => ({
             ...prev,
-            owners // update only the owners array
+            owners,
         }));
-
     };
+
+
+
+    const handleToggleHissaMethod = () => {
+        const newIsDecimal = !isDecimal;
+        setIsDecimal(newIsDecimal);
+    };
+
     const handlePlotChange = (index, field, value) => {
         if (field === "share" && value > 1) {
             alert('দাগের হিস্যা 1  এর বেশি হতে পারবে না।')
@@ -88,6 +114,15 @@ export default function LandForm() {
         }));
 
     }
+    const removeOwner = (index) => {
+        const updatedOwners = landInfo?.owners?.filter((_, i) => i !== index);
+        const totalShare = updatedOwners.reduce((total, owner) => total + Number(owner.share || 0), 0);
+        setOwnersTotalShare(Number(totalShare.toFixed(10)));
+        setLandInfo(prev => ({
+            ...prev,
+            owners: updatedOwners,
+        }));
+    }
 
     console.log(landInfo);
     const handleSubmit = (e) => {
@@ -104,10 +139,10 @@ export default function LandForm() {
             <div className='space-y-4 grid grid-cols-6 gap-4 p-4'>
                 <h2 className="text-xl font-bold mb-4 col-span-full">জমির তথ্য</h2>
                 <input
+                    name='district'
                     type="text"
                     placeholder="জিলা"
                     defaultValue={landInfo?.district}
-
                     className="input"
                     required
                 />
@@ -122,7 +157,8 @@ export default function LandForm() {
                 <input
                     type="text"
                     placeholder="তৌজি"
-                    defaultValue={landInfo.touji_No}
+                    defaultValue={landInfo.touji}
+                    name='touji'
                     className="input"
                     required
                 />
@@ -131,10 +167,17 @@ export default function LandForm() {
                     type="text"
                     placeholder="মৌজা"
                     defaultValue={landInfo?.mouja}
-
+                    name='mouja'
                     className="input"
                     required
                 />
+                <select name='khatian_type'>
+                    <option value="0">সিলেক্ট করুন</option>
+                    <option value="C.S">সি.এস</option>
+                    <option value="S.A">এস.এ</option>
+                    <option value="R.S">আর.এস</option>
+                    <option value="B.S">বি.এস</option>
+                </select>
                 <input
                     type="text"
                     placeholder="খতিয়ান নং"
@@ -150,7 +193,28 @@ export default function LandForm() {
                     className="input"
                     required
                 />
+                <div>
+                    <label className="block text-base font-semibold mb-2">হিস্যা হিসাব পদ্ধতি:</label>
+                    <div className="flex items-center gap-3">
+                        <span className={!isDecimal ? 'font-bold text-blue-600' : 'text-gray-500'}>
+                            প্রাচীন(আনা-গন্ডা) পদ্ধতি
+                        </span>
 
+                        <label className="relative inline-flex cursor-pointer items-center">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={isDecimal}
+                                onChange={handleToggleHissaMethod}
+                            />
+                            <div className="w-11 h-6 bg-blue-600 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                        </label>
+
+                        <span className={isDecimal ? 'font-bold text-green-600' : 'text-gray-500'}>
+                            দশমিক ভিত্তিক
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <div tabIndex={0} className='collapse collapse-arrow bg-base-100 border border-base-300'>
@@ -174,7 +238,7 @@ export default function LandForm() {
                                 <th>প্লট নং</th>
                                 <th>দাগের মোট পরিমান</th>
                                 <th>দাগের মধ্যে অত্র স্বত্বের অংশ</th>
-                                <th className='flex flex-wrap text-wrap'>দাগের মধ্যে অত্র স্বত্বের অংশের জমির পরিমান</th>
+                                <th className='flex flex-wrap text-wrap'>দাগের মধ্যে অত্র খতিয়ানের রসদীয় পরিমান</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -202,15 +266,7 @@ export default function LandForm() {
                                         />
                                     </td>
                                     <td>
-                                        <HissaCalculator />
-                                        <input
-                                            type="text"
-                                            placeholder="হিস্যা"
-                                            value={plot.share}
-                                            onChange={(e) => handlePlotChange(index, 'share', e.target.value)}
-                                            className="flex-1 border p-2 rounded"
-                                            required
-                                        />
+                                        <HissaCalculator handleHissa={handlePlotChange} index={index} shareType="plot" share={Number(plot.share) || 0} isDecimal={isDecimal} />
                                     </td>
                                     <td>
                                         <output className="text-green-500 flex-1 input">
@@ -219,15 +275,10 @@ export default function LandForm() {
 
                                     </td>
                                     <td><span className='btn btn-error btn-soft' onClick={() => removePlot(index)}>-</span></td>
-
-
-
-
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-
                     <span
                         type="button"
                         onClick={addPlot}
@@ -250,41 +301,54 @@ export default function LandForm() {
                         মোট মালিক:  {landInfo?.owners?.length}
                     </h2>
                     <h2>
-                        অবশিষ্ট মালিকানা অংশ:  {1 - ownersTotalShare}
+                        অবশিষ্ট মালিকানা অংশ:  {(1 - ownersTotalShare).toFixed(10)}
                     </h2>
                     <h2>
-                        মোট জমি:  {ownersTotalShare * landInfo.totalLand}
+                        বন্টনকৃত  মোট জমি:  {(ownersTotalShare * landInfo.totalLand).toFixed(4)}
                     </h2>
                 </div>
                 <div className='collapse-content text-sm'>
-                    {landInfo?.owners?.map((owner, index) => (
-                        <div key={index} className="flex gap-2 mb-2">
-                            <input
-                                type="text"
-                                placeholder="নাম"
-                                value={owner.name}
-                                onChange={(e) => handleOwnerChange(index, 'name', e.target.value)}
-                                className="flex-1 border p-2 rounded"
-                                required
-                            />
-                            <input
-                                type="text"
-                                placeholder="অত্র খতিয়ানে মালিকের অংশ"
-                                value={owner.share}
-                                onChange={(e) => handleOwnerChange(index, 'share', e.target.value)}
-                                className="flex-1 border p-2 rounded"
-                                required
-                            />
-                            <output className="text-green-500 flex-1 input">
-                                {owner.share * landInfo?.totalLand || 0}
-                            </output>
+                    <table className='table table-pins-row'>
+                        <thead>
+                            <tr className='text-wrap'>
+                                <td>SL</td>
+                                <td>মালিকের নাম</td>
+                                <td>অংশ</td>
+                                <td>খতিয়ানে মালিকের মোট জমি</td>
+                                <td></td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {landInfo?.owners?.map((owner, index) => (
+                                <tr key={index} className="">
+                                    <td>{index + 1}.</td>
+                                    <td><input
+                                        type="text"
+                                        placeholder="নাম"
+                                        value={owner.name}
+                                        onChange={(e) => handleOwnerChange(index, 'name', e.target.value)}
+                                        className="flex-1 border p-2 rounded"
+                                        required
+                                    /></td>
+                                    <td>  <HissaCalculator handleHissa={handleOwnerChange} shareType="owner" index={index} share={Number(owner.share) || 0} isDecimal={isDecimal} />
+                                    </td>
+                                    <td><output className="text-green-500 flex-1 input">
+                                        {owner.share * landInfo?.totalLand || 0}
+                                    </output></td>
+                                    <td><span className='btn btn-error btn-soft' onClick={() => removeOwner(index)}>-</span></td>
 
 
-                        </div>
-                    ))}
+
+
+
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
                     <span
 
-                        disabled={ownersTotalShare >= 1}
+                        disabled={Number(ownersTotalShare.toFixed(10)) >= 1}
                         onClick={addOwner}
                         className="text-sm btn btn-link text-blue-600"
                     >

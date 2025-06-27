@@ -1,0 +1,191 @@
+{
+    "district": "",
+    "thana": "",
+    "touji": "",
+    "mouja": "",
+    "j.l_no": "",
+    "khatian_No": "",
+    "khatian_type": "",
+    "plots": [
+        {
+            "plot_no": "308",
+            "totalLandInPlot": "6",
+            "share": "1.0000000000"
+        },
+        {
+            "plot_no": "309",
+            "totalLandInPlot": "114",
+            "share": 1
+        },
+        {
+            "plot_no": "405",
+            "totalLandInPlot": "20",
+            "share": 1
+        },
+        {
+            "plot_no": "418",
+            "totalLandInPlot": "54",
+            "share": 1
+        },
+        {
+            "plot_no": "417",
+            "totalLandInPlot": "57",
+            "share": 1
+        },
+        {
+            "plot_no": "416",
+            "totalLandInPlot": "51",
+            "share": 1
+        },
+        {
+            "plot_no": "403",
+            "totalLandInPlot": "64",
+            "share": 1
+        },
+        {
+            "plot_no": "406",
+            "totalLandInPlot": "15",
+            "share": 1
+        },
+        {
+            "plot_no": "404",
+            "totalLandInPlot": "16",
+            "share": 1
+        },
+        {
+            "plot_no": "401",
+            "totalLandInPlot": "7",
+            "share": 1
+        },
+        {
+            "plot_no": "402",
+            "totalLandInPlot": "2",
+            "share": 1
+        },
+        {
+            "plot_no": "800",
+            "totalLandInPlot": "46",
+            "share": 1
+        },
+        {
+            "plot_no": "815",
+            "totalLandInPlot": "100",
+            "share": 1
+        },
+        {
+            "plot_no": "816",
+            "totalLandInPlot": "88",
+            "share": 1
+        },
+        {
+            "plot_no": "817",
+            "totalLandInPlot": "84",
+            "share": 1
+        },
+        {
+            "plot_no": "818",
+            "totalLandInPlot": "81",
+            "share": 1
+        },
+        {
+            "plot_no": "819",
+            "totalLandInPlot": "72",
+            "share": 1
+        },
+        {
+            "plot_no": "820",
+            "totalLandInPlot": "15",
+            "share": 1
+        },
+        {
+            "plot_no": "821",
+            "totalLandInPlot": "40",
+            "share": 1
+        },
+        {
+            "plot_no": "822",
+            "totalLandInPlot": "20",
+            "share": 1
+        },
+        {
+            "plot_no": "823",
+            "totalLandInPlot": "21",
+            "share": 1
+        },
+        {
+            "plot_no": "822",
+            "totalLandInPlot": "90",
+            "share": 1
+        },
+        {
+            "plot_no": "821",
+            "totalLandInPlot": "87",
+            "share": 1
+        },
+        {
+            "plot_no": "817",
+            "totalLandInPlot": "18",
+            "share": 1
+        },
+        {
+            "plot_no": "800",
+            "totalLandInPlot": "36",
+            "share": "1.0000000000"
+        }
+    ],
+    "owners": [
+        {
+            "name": "কোকাই বাঘা",
+            "share": "0.2656250000"
+        },
+        {
+            "name": "সমর্থ্যবান বিবি",
+            "share": "0.2812500000"
+        },
+        {
+            "name": "মুজাফফর",
+            "share": "0.0531250000"
+        },
+        {
+            "name": "আজমত আলী",
+            "share": "0.0531250000"
+        },
+        {
+            "name": "হাসমত আলী",
+            "share": "0.0531250000"
+        },
+        {
+            "name": "সাদ আলী",
+            "share": "0.0531250000"
+        },
+        {
+            "name": "সৈয়দ আলী",
+            "share": "0.0312500000"
+        },
+        {
+            "name": "ফজর আলী",
+            "share": "0.0312500000"
+        },
+        {
+            "name": "শরিফজান বিবি",
+            "share": "0.0625000000"
+        },
+        {
+            "name": "কুট্টিজান বিবি",
+            "share": "0.0625000000"
+        },
+        {
+            "name": "সূর্য্যবান",
+            "share": "0.0234375000"
+        },
+        {
+            "name": "হাফেজা",
+            "share": "0.0234375000"
+        },
+        {
+            "name": "জাবেদা খাতুন",
+            "share": "0.0062500000"
+        }
+    ],
+    "totalLand": 1204
+}
