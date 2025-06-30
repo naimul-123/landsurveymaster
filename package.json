@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.81.5",
     "axios": "^1.10.0",
     "dotenv": "^17.0.0",
     "mongodb": "^6.17.0",
@@ -39,5 +40,8 @@
   "bugs": {
     "url": "https://github.com/naimul-123/landsurveymaster/issues"
   },
-  "homepage": "https://github.com/naimul-123/landsurveymaster#readme"
+  "homepage": "https://github.com/naimul-123/landsurveymaster#readme",
+  "directories": {
+    "lib": "lib"
+  }
 }
