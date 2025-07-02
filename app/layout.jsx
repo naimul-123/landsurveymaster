@@ -8,6 +8,7 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
+import { Toaster } from "react-hot-toast";
 
 const queryClient = new QueryClient();
 const geistSans = Geist({
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
             <main className="flex grow w-full">
               <Navbar />
               {children}
+
             </main>
           </QueryClientProvider>
 
@@ -82,6 +84,22 @@ export default function RootLayout({ children }) {
             </a>
           </footer>
         </div>
+        <Toaster position="top-right" toastOptions={{
+          // ✅ শুধুমাত্র error toast এর জন্য styling
+          error: {
+            duration: 4000,
+            icon: '🚫',
+            style: {
+              fontSize: '14px',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              border: '1px solid #f87171',
+              background: '#fef2f2',
+              color: '#b91c1c',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+            },
+          },
+        }} />
       </body>
     </html>
   );
