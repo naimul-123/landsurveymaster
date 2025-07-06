@@ -8,10 +8,15 @@ const InheritanceForm = () => {
 
     // শরীয়ত অনুযায়ী সম্ভাব্য সব উত্তরাধিকারীগণের তালিকা
     const relatives = [
-        // পুরুষ উত্তরাধিকারীগণ
-        'স্বামী', 'স্ত্রী', 'পুত্র', 'কন্যা', 'পিতা', 'মাতা', 'দাদা', 'দাদী',
-        'নানী', 'সহোদর ভাই', 'সহোদর বোন', 'সৎ ভাই (বৈমাত্রেয়)', 'সৎ বোন (বৈমাত্রেয়)',
-        'সৎ ভাই (বৈপিত্রেয়)', 'সৎ বোন (বৈপিত্রেয়)', 'সহোদর ভাইয়ের পুত্র', 'সৎ ভাই (বৈমাত্রেয়)-এর পুত্র', 'সহোদর ভাইয়ের পুত্রের পুত্র', 'সৎ ভাই (বৈমাত্রেয়)-এর পুত্রের পুত্র', 'আপন চাচা', 'সৎ চাচা', 'আপন চাচার পুত্র', 'সৎ চাচার পুত্র', 'আপন চাচার পুত্রের পুত্র', 'সৎ চাচার পুত্রের পুত্র'
+        // প্রথম স্তরের ওয়ারিশগণ
+        'পুত্র', 'কন্যা', 'পিতা', 'মাতা', 'স্বামী', 'স্ত্রী',
+        // দ্বিতীয় স্তরের ওয়ারিশগণ
+        'পুত্রের ছেলে', 'পুত্রের কন্যা', 'দাদা', 'দাদী', 'নানী', 'বৈপিত্রেয় ভাই/বোন',
+        // যাবিল ফুরুজ নারী
+
+        // আসাবাগণ
+        'সহোদর ভাই', 'সহোদর বোন', 'বৈমাত্রেয় ভাই', 'বৈমাত্রেয় বোন',
+        'সহোদর ভাইয়ের পুত্র', 'সৎ ভাই (বৈমাত্রেয়)-এর পুত্র', 'সহোদর ভাইয়ের পুত্রের পুত্র', 'সৎ ভাই (বৈমাত্রেয়)-এর পুত্রের পুত্র', 'আপন চাচা', 'সৎ চাচা', 'আপন চাচার পুত্র', 'সৎ চাচার পুত্র', 'আপন চাচার পুত্রের পুত্র', 'সৎ চাচার পুত্রের পুত্র'
     ];
     const uniqueRelatives = ['স্বামী', 'পিতা', 'মাতা', 'দাদা', 'দাদী', 'নানী',];
     const usedUniqueRelatives = inheritances
@@ -42,17 +47,14 @@ const InheritanceForm = () => {
     const handleInheritanceChange = (index, field, value) => {
         const updated = [...inheritances];
         updated[index][field] = value;
-
         const uniqueRelations = ['স্বামী', 'পিতা', 'মাতা', 'দাদা', 'দাদী', 'নানী'];
         const multipleLimitRelations = { 'স্ত্রী': 4 };
-
         const relativeCount = updated.reduce((acc, relative) => {
             if (relative.relation) {
                 acc[relative.relation] = (acc[relative.relation] || 0) + 1;
             }
             return acc;
         }, {});
-
         if (uniqueRelations.includes(value) && relativeCount[value] > 1) {
             updated[index][field] = "";
             toast.error(`"${value}" সম্পর্কটি একাধিকবার দেওয়া যাবে না!`);
@@ -84,79 +86,124 @@ const InheritanceForm = () => {
         setInheritances(updated);
     };
 
-
     const calculateRelative = (relatives) => {
-
-        const heirs = relatives.reduce((acc, relative) => {
+        // heirs will be an array of objects like: { relationName: "পুত্র", totalRelative: 2 }
+        const heirMap = relatives.reduce((acc, relative) => {
             acc[relative.relation] = (acc[relative.relation] || 0) + 1;
             return acc;
         }, {});
-        let total = 1; // মোট সম্পদ (1 মানে 100%)
+
+        const heirs = Object.entries(heirMap).map(([relationName, totalRelative]) => ({
+            relationName,
+            totalRelative
+        }));
+        console.log(heirs);
+        let total = 1;
         let shares = {};
 
-        const hasChildren = heirs["পুত্র"] || heirs["কন্যা"];
+        // helper function to get totalRelative by relation name
+        const getCount = (relation) => {
+            return heirs.find(h => h.relationName === relation)?.totalRelative || 0;
+        }
 
+        const hasSon = getCount("পুত্র");
+        const hasdoughter = getCount("কন্যা");
+        const hasChildren = hasSon || hasdoughter;
+        const hasSiblings = getCount("ভাই") || getCount("বোন");
+        const hasFather = getCount("পিতা");
+        const hasGrandFather = getCount("দাদা");
+        const hasHusbend = getCount("স্বামী");
+        const hasWife = getCount("স্ত্রী")
+        const hasMother = getCount("মাতা");
+        const hasGrandDoughter = getCount("পুত্রের কন্যা")
+        // === পিতা ===
+        if (getCount("পিতা")) {
+            shares["পিতা"] = hasChildren ? 1 / 6 : 0;
+        }
+        // === দাদা ===
+        if (getCount("দাদা")) {
+
+            shares["দাদা"] = hasFather ? 0 : hasChildren ? 1 / 6 : 0;
+        }
+        // === বৈপিত্রেয় ভাই বোন ===
+
+        if (getCount("বৈপিত্রেয় ভাই/বোন")) {
+
+            shares["বৈপিত্রেয় ভাই/বোন"] = hasChildren || hasFather || hasGrandFather ? 0 : getCount("বৈপিত্রেয় ভাই/বোন") > 1 ? 1 / 3 : 1 / 6;
+        }
         // === স্বামী ===
-        if (heirs["স্বামী"]) {
-            // সন্তান থাকলে 1/4, না থাকলে 1/2
+        if (getCount("স্বামী")) {
             shares["স্বামী"] = hasChildren ? 1 / 4 : 1 / 2;
         }
 
         // === স্ত্রী ===
-        if (heirs["স্ত্রী"]) {
-            const wifeCount = heirs["স্ত্রী"];
-            shares["স্ত্রী"] = hasChildren ? (1 / 8) * wifeCount : (1 / 4) * wifeCount;
-        }
 
+        if (hasWife) {
+            shares["স্ত্রী"] = hasChildren ? 1 / 8 : 1 / 4;
+        }
+        // === কন্যা ===
+        if (hasdoughter && !hasSon) {
+            shares["কন্যা"] = hasdoughter == 1 ? (1 / 2) : (2 / 3) / hasdoughter;
+        }
+        // ===পুত্রের কন্যা ===
+        if (hasGrandDoughter) {
+            shares["পুত্রের কন্যা"] = hasSon || hasdoughter > 1 ? 0 : hasdoughter === 1 ? (1 / 6) : !hasdoughter && hasGrandDoughter > 1 ? 2 / 3 : 1 / 2;
+        }
         // === মাতা ===
-        if (heirs["মাতা"]) {
-            // সন্তান বা একাধিক ভাই/বোন থাকলে 1/6, না হলে 1/3
-            const hasSiblings = heirs["ভাই"] || heirs["বোন"];
-            shares["মাতা"] = hasChildren || hasSiblings ? 1 / 6 : 1 / 3;
+        if (hasMother) {
+            shares["মাতা"] = hasChildren || hasSiblings ? 1 / 6 : hasHusbend ? (1 - shares["স্বামী"]) * (1 / 3) : hasWife ? (1 - shares["স্ত্রী"]) * (1 / 3) : 0;
+        }
+        // === দাদী ===
+        if (getCount("দাদী")) {
+            shares["দাদী"] = hasFather ? 0 : 1 / 6;
         }
 
-        // === পিতা ===
-        if (heirs["পিতা"]) {
-            // সন্তান থাকলে পিতা পান 1/6, না থাকলে তিনি residuary হবেন
-            shares["পিতা"] = hasChildren ? 1 / 6 : null; // null মানে এখনো হিসাব করা হয়নি
+        // === নানী ===
+        if (getCount("নানী")) {
+            shares["নানী"] = hasFather || hasMother ? 0 : 1 / 6;
         }
+
 
         // === Fixed shares হিসাব করা ===
+
         let fixedShareTotal = 0;
         for (let key in shares) {
-            if (shares[key] !== null) {
-                fixedShareTotal += shares[key];
+            const count = getCount(key); // একজন না একাধিক?
+            if (shares[key] !== null && shares[key] !== undefined) {
+                fixedShareTotal += shares[key] * count;
             }
         }
 
         const residue = total - fixedShareTotal;
 
         // === পুত্র ও কন্যা (residuary) ===
-        const sonCount = heirs["পুত্র"] || 0;
-        const daughterCount = heirs["কন্যা"] || 0;
+        if (hasSon) {
+            const totalUnit = Number(hasSon) * 2 + Number(hasdoughter);
+            shares["পুত্র"] = (residue / totalUnit) * 2;
+            if (hasdoughter) {
+                shares["কন্যা"] = (residue / totalUnit);
+            }
 
-        const totalUnits = (2 * sonCount) + daughterCount;
-
-        if (totalUnits > 0) {
-            const unitValue = residue / totalUnits;
-
-            if (sonCount > 0) shares["পুত্র"] = unitValue * 2 * sonCount;
-            if (daughterCount > 0) shares["কন্যা"] = unitValue * daughterCount;
         }
+
+
 
         // === পিতা যদি residuary হন (সন্তান না থাকলে) ===
-        if (heirs["পিতা"] && shares["পিতা"] === null) {
-            shares["পিতা"] = residue; // সম্পূর্ণ বাকি অংশ
+        if (hasFather && !hasSon) {
+            shares["পিতা"] = hasdoughter ? shares["পিতা"] + residue : residue;
         }
-
+        // === দাদা যদি residuary হন (সন্তান/পিতা না থাকলে) ===
+        if (hasGrandFather && !hasFather && !hasSon) {
+            shares["দাদা"] = hasdoughter ? shares["দাদা"] + residue : residue;
+        }
         // রেজাল্ট রাউন্ড করে ফরম্যাট করো
         for (let key in shares) {
             shares[key] = parseFloat(shares[key].toFixed(4));
         }
 
         return shares;
-
     }
+
 
     useEffect(() => {
         const totalRelative = calculateRelative(inheritances)
