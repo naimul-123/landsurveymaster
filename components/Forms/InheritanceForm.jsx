@@ -121,15 +121,14 @@ const InheritanceForm = () => {
             shares["পিতা"] = hasChildren ? 1 / 6 : 0;
         }
         // === দাদা ===
-        if (getCount("দাদা")) {
-
-            shares["দাদা"] = hasFather ? 0 : hasChildren ? 1 / 6 : 0;
+        if (getCount("দাদা") && !hasFather) {
+            shares["দাদা"] = hasChildren ? 1 / 6 : 0;
         }
         // === বৈপিত্রেয় ভাই বোন ===
 
-        if (getCount("বৈপিত্রেয় ভাই/বোন")) {
+        if (getCount("বৈপিত্রেয় ভাই/বোন") && !hasChildren && !hasFather && !hasGrandFather) {
 
-            shares["বৈপিত্রেয় ভাই/বোন"] = hasChildren || hasFather || hasGrandFather ? 0 : getCount("বৈপিত্রেয় ভাই/বোন") > 1 ? 1 / 3 : 1 / 6;
+            shares["বৈপিত্রেয় ভাই/বোন"] = getCount("বৈপিত্রেয় ভাই/বোন") > 1 ? (1 / 3) / getCount("বৈপিত্রেয় ভাই/বোন") : 1 / 6;
         }
         // === স্বামী ===
         if (getCount("স্বামী")) {
