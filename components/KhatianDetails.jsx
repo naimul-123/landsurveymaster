@@ -17,6 +17,27 @@ const KhatianDetails = ({ khatian }) => {
             <p>খতিয়ান নং:{khatian?.khatian_No || ""} </p>
           </div>
         </div>
+        <table className="table table-xs">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>মালিকের নাম</th>
+              <th>মালিকানার অংশ</th>
+              <th>প্রাপ্ত মোট জমি</th>
+              <th>বিস্তারিত</th>
+            </tr>
+          </thead>
+          <tbody>
+            {khatian?.owners?.map((owner, idx) => {
+              return <tr>
+                <td>{idx + 1}</td>
+                <td>{owner.name.split(',')[0]}</td>
+                <td></td>
+                <td></td>
+              </tr>
+            })}
+          </tbody>
+        </table>
         {khatian?.owners?.map((owner) => (
           <div
             key={owner.name}

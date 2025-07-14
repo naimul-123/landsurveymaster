@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import HissaCalculator from "../HissaCalculator";
 import { postData } from "@/lib/api";
+import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 export default function LandForm() {
   const [landInfo, setLandInfo] = useState({
@@ -12,7 +14,8 @@ export default function LandForm() {
   });
   const [isDecimal, setIsDecimal] = useState(false);
   const [ownersTotalShare, setOwnersTotalShare] = useState(0);
-
+  // form ref to reset form after submit
+  const formRef = useRef(null)
   const handleOwnerChange = (index, field, value) => {
     if (field === "share") {
       const otherSharesTotal = landInfo?.owners?.reduce((total, owner, i) => {
@@ -129,7 +132,16 @@ export default function LandForm() {
       owners: updatedOwners,
     }));
   };
+  const khatianMutation = useMutation({
+    mutationFn: (data) => postData('/api/khatianinfo', data),
+    onSuccess: async (res) => {
+      if (res.success) {
+        toast(res.message)
+      }
 
+      queryClient.invalidateQueries({ queryKey: ['khatianList'] });
+    }
+  });
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -151,13 +163,13 @@ export default function LandForm() {
       khatian_No,
       khatian_type,
     };
-    const response = await postData("/api/khatianinfo", data);
-    console.log("Submitted:", response);
+    khatianMutation.mutate(data)
     // এখানে API call যাবে
   };
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
       className="space-y-8 w-full max-w-screen-xl mx-auto mt-8 p-6 bg-base-100 border border-base-300 rounded-xl shadow-md flex flex-col"
     >
