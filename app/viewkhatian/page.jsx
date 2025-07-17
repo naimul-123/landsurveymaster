@@ -16,6 +16,7 @@ const ViewKhatian = () => {
   const { data: khatianinfo } = useQuery({
     queryKey: "khatianinfo",
     queryFn: () => getData("/api/khatianinfo"),
+
   });
   console.log(khatianinfo);
   return (

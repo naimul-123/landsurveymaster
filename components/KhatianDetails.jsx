@@ -1,6 +1,8 @@
+import Link from "next/link";
 import React from "react";
 
 const KhatianDetails = ({ khatian }) => {
+
   console.log(khatian);
   if (khatian) {
     return (
@@ -29,16 +31,21 @@ const KhatianDetails = ({ khatian }) => {
           </thead>
           <tbody>
             {khatian?.owners?.map((owner, idx) => {
+              const acquired = owner.acquired?.find(acq => acq.acquiredId === khatian._id);
+              const plots = acquired.plots;
+              const ownershare = (acquired.acquiredShare);
+              const totalland = plots.reduce((sum, plot) => sum + plot.acquiredLand, 0).toFixed(3);
               return <tr>
                 <td>{idx + 1}</td>
-                <td>{owner.name.split(',')[0]}</td>
-                <td></td>
-                <td></td>
+                <td>{owner.name.split(',')[0]} <br />{owner.name.split(',')[1]} </td>
+                <td>{Number(ownershare)?.toFixed(4)}</td>
+                <td>{totalland}</td>
+                <td><Link href={`/viewkhatian/${owner._id}`} className="link">Click to see details</Link></td>
               </tr>
             })}
           </tbody>
         </table>
-        {khatian?.owners?.map((owner) => (
+        {/* {khatian?.owners?.map((owner) => (
           <div
             key={owner.name}
             className="bg-base-100 border-base-300 collapse border"
@@ -107,7 +114,7 @@ const KhatianDetails = ({ khatian }) => {
               </table>
             </div>
           </div>
-        ))}
+        ))} */}
       </div>
     );
   } else return <div></div>;
