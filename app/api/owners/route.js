@@ -5,53 +5,87 @@ import { NextResponse } from "next/server";
 const client = await clientPromise;
 const db = client.db("landsurvey");
 const ownerDb = db.collection("owners");
-// export async function POST(req) {
-//   try {
-//     const owners = await req.json();
-//     if (!Array.isArray(owners) || owners.length === 0) {
-//       return NextResponse.json(
-//         { error: "Owners must be a non-empty array" },
-//         { status: 400 }
-//       );
-//     }
-//     const result = await ownerDb.insertMany(owners);
-//     if (result.acknowledged) {
-//       const response = NextResponse.json(
-//         {
-//           success: true,
-//           message: "Owners added successfully",
-//         },
-//         { status: 200 }
-//       );
-//       return response;
-//     }
-//   } catch (error) {
-//     return NextResponse.json(
-//       { error: "Failed to add khatian", error },
-//       { status: 500 }
-//     );
-//   }
-// }
-export async function GET(req) {
+const transferDb = db.collection("transfer");
+const khatiandb = db.collection("khatian");
 
+export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  console.log(id);
 
   if (!id) {
     return NextResponse.json({ error: "Missing id parameter" }, { status: 400 });
   }
 
   try {
+    const owner = await ownerDb.findOne({ _id: new ObjectId(id) });
 
-    const result = await ownerDb.findOne({ _id: new ObjectId(id) });
-
-    if (result) {
-      return NextResponse.json(result, { status: 200 });
-    } else {
-      return NextResponse.json({ message: "No data found" }, { status: 404 });
+    if (!owner) {
+      return NextResponse.json({ error: "Owner not found" }, { status: 404 });
     }
+
+    const acquired = await transferDb.find({ "to": new ObjectId(id) }).toArray() || [];
+    const transferred = await transferDb.find({ "source.from": new ObjectId(id) }).toArray() || [];
+
+    const khatian = await khatiandb.findOne({ _id: new ObjectId(owner?.khatianId) });
+
+    if (!khatian) {
+      return NextResponse.json({ error: "Khatian not found" }, { status: 404 });
+    }
+
+    // ✅ এখন acquired এর প্রতিটি item enriched করি
+    const enrichedAcquired = acquired?.map(acq => {
+      const calculatedPlots = acq.plots?.map(p => {
+        const khatianPlot = khatian.plots.find(kp => kp.plot_no === p.plot_no);
+        const totalLandInPlot = parseFloat(khatianPlot?.totalLandInPlot || 0);
+        const plotShare = parseFloat(khatianPlot?.share || 1); // fallback 1
+        const acquiredShare = parseFloat(p.share || 0) * plotShare;
+        return {
+          ...p,
+          totalLandInPlot,
+          acquiredShare,
+        };
+      }) || [];
+
+      return {
+
+        ...acq,
+        plots: calculatedPlots,
+      };
+    });
+    // ✅ এখন transferred এর প্রতিটি item enriched করি
+    const enrichedTransfered = transferred?.map(tnans => {
+      const calculatedPlots = tnans.plots?.map(p => {
+        const khatianPlot = khatian.plots.find(kp => kp.plot_no === p.plot_no);
+        const totalLandInPlot = parseFloat(khatianPlot?.totalLandInPlot || 0);
+        const plotShare = parseFloat(khatianPlot?.share || 1); // fallback 1
+        const acquiredShare = parseFloat(p.share || 0) * plotShare;
+        return {
+          ...p,
+          totalLandInPlot,
+          acquiredShare,
+        };
+      }) || [];
+
+      return {
+
+        ...tnans,
+        plots: calculatedPlots,
+      };
+    });
+    const { _id, plots, totalLand, ...rest } = khatian
+    const result = {
+      ...rest,
+      ...owner,
+      acquired: enrichedAcquired,
+      transfered: enrichedTransfered,
+    };
+
+    return NextResponse.json(result, { status: 200 });
+
   } catch (error) {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error", message: error.message },
+      { status: 500 }
+    );
   }
 }

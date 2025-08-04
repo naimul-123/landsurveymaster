@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import HissaCalculator from "../HissaCalculator";
 import { postData } from "@/lib/api";
-import { useMutation } from "@tanstack/react-query";
+import { QueryClient, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 export default function LandForm() {
@@ -133,14 +133,7 @@ export default function LandForm() {
     }));
   };
   const khatianMutation = useMutation({
-    mutationFn: (data) => postData('/api/khatianinfo', data),
-    onSuccess: async (res) => {
-      if (res.success) {
-        toast(res.message)
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['khatianList'] });
-    }
+    mutationFn: (data) => postData('/api/khatianinfo', data)
   });
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -163,7 +156,21 @@ export default function LandForm() {
       khatian_No,
       khatian_type,
     };
-    khatianMutation.mutate(data)
+    khatianMutation.mutate(data, {
+      onSuccess: async (res) => {
+        if (res.success) {
+          toast(res.message);
+          setLandInfo({
+            plots: [],
+            owners: [],
+            totalLand: 0,
+          })
+          form.reset();
+        }
+
+        QueryClient.invalidateQueries({ queryKey: ['khatianinfo'] });
+      }
+    })
     // এখানে API call যাবে
   };
 

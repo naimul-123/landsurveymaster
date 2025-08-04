@@ -116,10 +116,9 @@ const InheritanceForm = () => {
         const hasPaternalHalfSister = getCount('বৈমাত্রেয় বোন');
         const hasPaternalHalfBrother = getCount('বৈমাত্রেয় ভাই');
 
-
         // === পিতা ===
         if (hasFather) {
-            shares["পিতা"] = hasChildren ? 1 / 6 : 0;
+            shares["পিতা"] = hasChildren || hasGrandChildren ? 1 / 6 : 0;
         }
         // === দাদা ===
         if (hasGrandFather && !hasFather) {
@@ -173,7 +172,7 @@ const InheritanceForm = () => {
             shares["নানী"] = hasFather || hasMother ? 0 : 1 / 6;
         }
 
-
+        console.log(shares);
 
 
         // আসাবাগণের  হিসাব
@@ -190,13 +189,13 @@ const InheritanceForm = () => {
         const residue = (total - fixedShareTotal)
 
         // === পিতা যদি residuary হন (সন্তান না থাকলে) ===
-        if (hasFather && (!hasSon || !hasGrandSon)) {
-            shares["পিতা"] = hasdoughter || hasGrandDoughter ? shares["পিতা"] + residue : residue;
+        if (hasFather && !hasSon && !hasGrandSon) {
+            shares["পিতা"] = hasdoughter || hasGrandDoughter ? Number(shares["পিতা"]) + Number(residue) : residue;
         }
 
         // === দাদা যদি residuary হন (সন্তান/পিতা না থাকলে) ===
         if (hasGrandFather && !hasFather && (!hasSon || !hasGrandSon)) {
-            shares["দাদা"] = hasdoughter || hasGrandDoughter ? shares["দাদা"] + residue : residue;
+            shares["দাদা"] = hasdoughter || hasGrandDoughter ? Number(shares["দাদা"]) + Number(residue) : residue;
         }
 
         // === পুত্র ও কন্যা (residuary) ===
@@ -280,8 +279,8 @@ const InheritanceForm = () => {
                     <h2 className="text-2xl font-bold text-primary">উত্তরাধীকারীর তথ্য</h2>
                     <div className="flex flex-col md:flex-row justify-between gap-2 mt-2 text-sm">
                         <h2>মোট উত্তরাধিকারী: {inheritances.length}</h2>
-                        {/* <h2>মোট শেয়ার: {totalShare.toFixed(4)}</h2>
-                        {totalShare > 1 && <h2 className="text-red-500 font-bold">⚠️ মোট শেয়ার ১ এর বেশি!</h2>} */}
+                        {/*<h2>মোট শেয়ার: {totalShare.toFixed(4)}</h2>
+                        {totalShare > 1 && <h2 className="text-red-500 font-bold">⚠️ মোট শেয়ার ১ এর বেশি!</h2>}*/}
                     </div>
                 </div>
 
@@ -302,8 +301,9 @@ const InheritanceForm = () => {
                                     <td>
                                         <input
                                             type="text"
-                                            value={item.name}
+                                            {...(!!item.name ? { value: item.name } : {})}
                                             onChange={(e) => handleInheritanceChange(index, 'name', e.target.value)}
+                                            placeholder='করিম, পিং রহিমুদ্দীন'
                                             className="input input-bordered input-sm w-full"
                                             required
                                         />

@@ -24,22 +24,22 @@ const KhatianDetails = ({ khatian }) => {
             <tr>
               <th>#</th>
               <th>মালিকের নাম</th>
-              <th>মালিকানার অংশ</th>
               <th>প্রাপ্ত মোট জমি</th>
               <th>বিস্তারিত</th>
             </tr>
           </thead>
           <tbody>
             {khatian?.owners?.map((owner, idx) => {
-              const acquired = owner.acquired?.find(acq => acq.acquiredId === khatian._id);
-              const plots = acquired.plots;
-              const ownershare = (acquired.acquiredShare);
-              const totalland = plots.reduce((sum, plot) => sum + plot.acquiredLand, 0).toFixed(3);
-              return <tr>
+              const totalAcquired = owner.shareInfo.reduce((sum, shareEntry) => {
+                const plot = khatian.plots.find(p => p.plot_no === shareEntry.plot_no);
+                const land = (plot?.totalLandInPlot || 0) * (plot?.share || 0) * (shareEntry.share || 0);
+                return sum + land;
+              }, 0);
+
+              return <tr key={idx}>
                 <td>{idx + 1}</td>
-                <td>{owner.name.split(',')[0]} <br />{owner.name.split(',')[1]} </td>
-                <td>{Number(ownershare)?.toFixed(4)}</td>
-                <td>{totalland}</td>
+                <td>{owner.name} </td>
+                <td>{Number(totalAcquired).toFixed(3)}</td>
                 <td><Link href={`/viewkhatian/${owner._id}`} className="link">Click to see details</Link></td>
               </tr>
             })}

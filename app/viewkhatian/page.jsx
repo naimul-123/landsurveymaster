@@ -27,7 +27,7 @@ const ViewKhatian = () => {
           <li type="button" onClick={() => setKhatianId(khatian._id)} className={`border-b hover:bg-accent-content p-4 hover:text-white ${khatian._id === khatian_id ? 'bg-accent-content text-white' : ''}`}>
             <div className="card w-60  card-xs rounded-none ">
               <div className="card-body">
-                <h2 className="card-title">{khatian?.owners[0].name} গং</h2>
+                <h2 className="card-title">{khatian?.owners[0]?.name} গং</h2>
                 <p>জেলা: {khatian?.district} থানা: {khatian.thana} মৌজা:{khatian.mouja} {khatian.khatian_type} {khatian?.khatian_No} নং খতিয়ান</p>
               </div>
             </div>

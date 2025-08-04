@@ -22,6 +22,7 @@ const Navbar = () => {
             Add New Khatian
           </Link>
           <Link href="/viewkhatian">View Khatian</Link>
+          <Link href="/transferland">Transfer Land</Link>
         </div>
       </div>
     </div>

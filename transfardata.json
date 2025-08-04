@@ -1,0 +1,32 @@
+[
+    {
+        "_id": {
+            "$oid": "687d543abde34d166bca5c95"
+        },
+        "khatianId": {
+            "$oid": "687d543abde34d166bca5c91"
+        },
+        "source": {
+            "acquiredType": "ক্রয়",
+            "from": {
+                "$oid": "687d543abde34d166bca5c92"
+            },
+            "deedNo": 4521,
+            "deedDate": "15/05/2021",
+            "subRegistryOffice": "হিজলা"
+        },
+        "to": {
+            "$oid": "687d543abde34d166bca5c93"
+        },
+        "plots": [
+            {
+                "plot_no": "817",
+                "share": "0.012"
+            },
+            {
+                "plot_no": "818",
+                "share": "0.012"
+            }
+        ]
+    }
+]
