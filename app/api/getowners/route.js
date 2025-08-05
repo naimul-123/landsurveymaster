@@ -13,14 +13,22 @@ export async function GET(req) {
   const khatianId = searchParams.get("khatianId");
 
   if (!khatianId) {
-    return NextResponse.json({ error: "Missing khatianId parameter" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing khatianId parameter" },
+      { status: 400 }
+    );
   }
 
   try {
-    const owners = await ownerDb.find({ khatianIds: khatianId, alive: true }).toArray();
+    const owners = await ownerDb
+      .find({ khatianIds: khatianId, alive: true })
+      .toArray();
 
     if (owners.length <= 0) {
-      return NextResponse.json({ error: "No owner found in this khatian" }, { status: 404 });
+      return NextResponse.json(
+        { error: "No owner found in this khatian" },
+        { status: 404 }
+      );
     }
 
     const khatian = await khatiandb.findOne({ _id: new ObjectId(khatianId) });
@@ -30,11 +38,13 @@ export async function GET(req) {
 
     // ✅ helper function: enrich plots with share info
     const enrichPlots = (plots) => {
-      return plots.map(p => {
-        const khatianPlot = khatian.plots.find(kp => kp.plot_no === p.plot_no);
-        const totalLandInPlot = parseFloat(khatianPlot?.totalLandInPlot || 0);
-        const plotShare = parseFloat(khatianPlot?.share || 1);
-        const acquiredShare = parseFloat(p.share || 0) * plotShare;
+      return plots.map((p) => {
+        const khatianPlot = khatian.plots.find(
+          (kp) => kp.plot_no === p.plot_no
+        );
+        const totalLandInPlot = Number(khatianPlot?.totalLandInPlot || 0);
+        const plotShare = Number(khatianPlot?.share || 1);
+        const acquiredShare = Number(p.share || 0) * plotShare;
         return {
           ...p,
           totalLandInPlot,
@@ -47,11 +57,17 @@ export async function GET(req) {
       owners.map(async (owner) => {
         // Acquired
         const acquiredDocs = await transferDb.find({ to: owner._id }).toArray();
-        const enrichedAcquired = acquiredDocs.flatMap(doc => enrichPlots(doc.plots || []));
+        const enrichedAcquired = acquiredDocs.flatMap((doc) =>
+          enrichPlots(doc.plots || [])
+        );
 
         // Transferred
-        const transferredDocs = await transferDb.find({ "source.from": owner._id }).toArray();
-        const enrichedTransferred = transferredDocs.flatMap(doc => enrichPlots(doc.plots || []));
+        const transferredDocs = await transferDb
+          .find({ "source.from": owner._id })
+          .toArray();
+        const enrichedTransferred = transferredDocs.flatMap((doc) =>
+          enrichPlots(doc.plots || [])
+        );
 
         // Transferable = acquired - transferred (by plot_no)
         const transferableMap = {};
@@ -71,10 +87,11 @@ export async function GET(req) {
         const transferable = Object.entries(transferableMap)
           .filter(([_, val]) => val > 0)
           .map(([plot_no, acquiredShare]) => {
-            const plotInfo = khatian.plots.find(p => p.plot_no === plot_no);
-            const totalLandInPlot = parseFloat(plotInfo?.totalLandInPlot || 0);
-            const plotShare = parseFloat(plotInfo?.share || 0);
-            const transferableTotalLand = totalLandInPlot * acquiredShare * plotShare;
+            const plotInfo = khatian.plots.find((p) => p.plot_no === plot_no);
+            const totalLandInPlot = Number(plotInfo?.totalLandInPlot || 0);
+            const plotShare = Number(plotInfo?.share || 0);
+            const transferableTotalLand =
+              totalLandInPlot * acquiredShare * plotShare;
 
             return {
               plot_no,
@@ -83,17 +100,15 @@ export async function GET(req) {
             };
           });
 
-
         return {
           ...owner,
           transferable,
-          acquired: enrichedAcquired
+          acquired: enrichedAcquired,
         };
       })
     );
 
     return NextResponse.json({ owners: enrichedOwners }, { status: 200 });
-
   } catch (error) {
     return NextResponse.json(
       { error: "Internal Server Error", message: error.message },
