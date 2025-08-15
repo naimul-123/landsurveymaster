@@ -1,102 +1,130 @@
 "use client";
+
+import BuyerCollapse from "@/components/BuyerCollapse";
+import SelectedBuyer from "@/components/selectedBuyer";
 import SelectedKhatian from "@/components/SelectedKhatian";
 import { deleteData, getData, postData } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
-import { FaAnglesLeft, FaAnglesRight } from "react-icons/fa6";
-import { MdPersonRemove } from "react-icons/md";
+import React, { useMemo, useState } from "react";
 import Swal from "sweetalert2";
+import Flatpickr from "react-flatpickr";
+import "flatpickr/dist/themes/material_blue.css";
 const TransferLand = () => {
   const [selectedKhatians, setSelectedKhatians] = useState([]);
+  const [landTransferType, setLandTransferType] = useState("portionBased");
   const [selectedBuyers, setSelectedBuyers] = useState([]);
+  const [date, setDate] = useState(null);
+  // Fetch khatian info
   const { data: khatianinfo } = useQuery({
-    queryKey: "khatianinfo",
+    queryKey: ["khatianinfo"],
     queryFn: () => getData("/api/khatianinfo"),
   });
+
+  // Prepare potential buyers excluding already selected and those with transferable land
   const potentialBuyers = useMemo(() => {
     const allOwners = selectedKhatians.flatMap((k) => k.owners);
     const selectedBuyerIds = new Set(selectedBuyers.map((b) => b._id));
 
-    return allOwners.filter(
-      (owner) =>
-        // isTransferor falsey (null/undefined/false)
-        !owner.isTransferor ||
-        // transferable না আছে বা খালি অ্যারে
-        ((!Array.isArray(owner.transferable) ||
-          owner.transferable.length === 0) &&
-          // আগে থেকে selected buyer না হয়
-          !selectedBuyerIds.has(owner._id))
-    );
+    return allOwners.filter((owner) => {
+      if (selectedBuyerIds.has(owner._id)) return false;
+      if (!owner.isTransferor) return true;
+      if (!Array.isArray(owner.transferable) || owner.transferable.length === 0)
+        return true;
+      return false;
+    });
   }, [selectedKhatians, selectedBuyers]);
 
+  // Total selected land from selectedKhatians
+  const totalSelectedLand = useMemo(() => {
+    if (!Array.isArray(selectedKhatians) || selectedKhatians.length === 0)
+      return 0;
+
+    return selectedKhatians.reduce(
+      (sum, k) => sum + Number(k.totalSelectedLand || 0),
+      0
+    );
+  }, [selectedKhatians]);
+
+  // Total land assigned to buyers
+  const buyersTotalLand = useMemo(() => {
+    return selectedBuyers.reduce((buyerSum, buyer) => {
+      const buyerTotal = (buyer.selectedLandInfo || []).reduce(
+        (infoSum, info) => {
+          const plotTotal = (info.plots || []).reduce(
+            (plotSum, plot) => plotSum + Number(plot.selectedLand || 0),
+            0
+          );
+          return infoSum + plotTotal;
+        },
+        0
+      );
+      return buyerSum + buyerTotal;
+    }, 0);
+  }, [selectedBuyers]);
+
+  // Map of khatianId => total selected land from all buyers
+  const khatianTotalSelectedMap = useMemo(() => {
+    const map = {};
+    selectedBuyers.forEach((buyer) => {
+      (buyer.selectedLandInfo || []).forEach((info) => {
+        const plotTotal = (info.plots || []).reduce(
+          (sum, plot) => sum + Number(plot.selectedLand || 0),
+          0
+        );
+        map[info.khatianId] = (map[info.khatianId] || 0) + plotTotal;
+      });
+    });
+    return map;
+  }, [selectedBuyers]);
+
+  const remainingLand = totalSelectedLand - buyersTotalLand;
+
+  // Add a khatian from select form
   const handleAddKhatian = async (e) => {
     e.preventDefault();
-    const form = e.target;
-    const selectedKhatianId = form.khatianId.value;
-    const prevIds = selectedKhatians.map((k) => String(k._id));
+    const selectedKhatianId = e.target.khatianId.value;
+    if (!selectedKhatianId) return;
 
-    if (!prevIds.includes(selectedKhatianId)) {
-      const selectedKhatian = khatianinfo.find(
-        (k) => String(k._id) === selectedKhatianId
+    if (selectedKhatians.some((k) => String(k._id) === selectedKhatianId)) {
+      return alert("এই খতিয়ান ইতিমধ্যে নির্বাচিত হয়েছে।");
+    }
+
+    const selectedKhatian = khatianinfo.find(
+      (k) => String(k._id) === selectedKhatianId
+    );
+    if (!selectedKhatian) return alert("অবৈধ খতিয়ান সিলেক্ট করা হয়েছে");
+
+    try {
+      const { owners } = await getData(
+        `/api/getowners?khatianId=${selectedKhatianId}`
       );
-      if (!selectedKhatian) return alert("Invalid Khatian selected");
-
-      try {
-        const { owners } = await getData(
-          `/api/getowners?khatianId=${selectedKhatianId}`
-        );
-        if (owners.length > 0) {
-          const updatedKhatian = { ...selectedKhatian, owners };
-          setSelectedKhatians((prev) => [...prev, updatedKhatian]);
-        }
-      } catch (err) {
-        console.error("Error fetching owners:", err);
+      if (owners.length > 0) {
+        setSelectedKhatians((prev) => [
+          ...prev,
+          { ...selectedKhatian, owners },
+        ]);
       }
-
-      form.reset();
-    }
-  };
-  console.log(selectedKhatians);
-
-  console.log({ khatianinfo, selectedKhatians });
-
-  const handleAddExistingBuyer = ({ buyer }) => {
-    // যদি buyer আগেই না থাকে
-    if (!selectedBuyers.find((b) => b._id === buyer._id)) {
-      // Step 1: selectedBuyers এ যোগ করো
-      setSelectedBuyers((prev) => [...prev, buyer]);
-
-      // Step 2: buyer কে সব khatian এর owners থেকে সরিয়ে দাও
-      setSelectedKhatians((prev) =>
-        prev.map((k) => {
-          // যদি buyer এর khatianIds-এ এই খতিয়ানের id থাকে
-          if (buyer.khatianIds?.includes(k._id.toString())) {
-            return {
-              ...k,
-              owners: k.owners.filter((o) => o._id !== buyer._id),
-            };
-          }
-          return k;
-        })
-      );
+      e.target.reset();
+    } catch (error) {
+      console.error("Error fetching owners:", error);
+      alert("মালিকদের তথ্য আনার সময় সমস্যা হয়েছে।");
     }
   };
 
+  // Add existing buyer to selectedBuyers
+  const handleAddExistingBuyer = (buyer) => {
+    setSelectedBuyers((prev) => [...prev, buyer]);
+  };
+
+  // Remove buyer from selectedBuyers and add back to owners of khatians
   const handleRemoveBuyer = ({ buyer }) => {
-    // Step 1: selectedBuyers থেকে বাদ দাও
     setSelectedBuyers((prev) => prev.filter((b) => b._id !== buyer._id));
-
-    // Step 2: buyer এর khatianIds অ্যারের প্রতিটি খতিয়ানে owner হিসেবে ফেরত দাও
     setSelectedKhatians((prev) =>
       prev.map((k) => {
         if (buyer.khatianIds?.includes(k._id)) {
-          const alreadyExists = k.owners.find((o) => o._id === buyer._id);
-          if (!alreadyExists) {
-            return {
-              ...k,
-              owners: [...k.owners, buyer],
-            };
+          const exists = k.owners.some((o) => o._id === buyer._id);
+          if (!exists) {
+            return { ...k, owners: [...k.owners, buyer] };
           }
         }
         return k;
@@ -104,224 +132,399 @@ const TransferLand = () => {
     );
   };
 
+  // Add new buyer via API
   const handleAddNewBuyer = async (e) => {
     e.preventDefault();
-    const buyerName = e.target.buyerName.value;
+    const buyerName = e.target.buyerName.value.trim();
+    if (!buyerName) return alert("মালিকের নাম লিখুন");
+
     const khatianIds = selectedKhatians.map((k) => k._id);
-    const { owner } = await postData("/api/addowner", {
-      name: buyerName,
-      khatianIds,
-      alive: true,
-    });
-    console.log(owner);
-    if (owner) {
-      setSelectedKhatians((prev) =>
-        prev.map((k) => {
-          if (owner.khatianIds?.includes(k._id.toString())) {
-            const alreadyExists = k.owners.find((o) => o._id === owner._id);
-            if (!alreadyExists) {
-              return {
-                ...k,
-                owners: [...k.owners, owner],
-              };
-            }
-          }
-          return k;
-        })
-      );
-    }
-  };
-  const handleDeleteNewBuyer = async (owner) => {
-    const { _id, khatianIds } = owner;
-
     try {
-      if (_id) {
-        // Swal.fire({
-        //     title: "Do you want to save the changes?",
-        //     showDenyButton: true,
-        //     showCancelButton: true,
-        //     confirmButtonText: "Save",
-        //     denyButtonText: `Don't save`
-        // }).then((result) => {
-        //     /* Read more about isConfirmed, isDenied below */
-        //     if (result.isConfirmed) {
-        //         Swal.fire("Saved!", "", "success");
-        //     } else if (result.isDenied) {
-        //         Swal.fire("Changes are not saved", "", "info");
-        //     }
-        // });
-        const confirm = await Swal.fire({
-          title: "Are you sure?",
-          text: "Do you really want to delete this buyer?",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#3085d6",
-          cancelButtonColor: "#d33",
-          confirmButtonText: "Yes, delete it!",
-        });
+      const { owner } = await postData("/api/addowner", {
+        name: buyerName,
+        khatianIds,
+        alive: true,
+      });
 
-        if (confirm.isConfirmed) {
-          const res = await deleteData("/api/deleteowner", { id: _id });
-
-          if (res.success) {
-            // Step 1: selectedKhatians থেকে owner বাদ দাও
-            setSelectedKhatians((prev) =>
-              prev.map((k) => {
-                if (khatianIds?.includes(k._id.toString())) {
-                  return {
-                    ...k,
-                    owners: k.owners.filter((o) => o._id !== _id),
-                  };
-                }
-                return k;
-              })
-            );
-
-            // Step 3: Success Message
-            Swal.fire("Deleted!", "The buyer has been deleted.", "success");
-          } else {
-            Swal.fire("Failed!", res.error || "Failed to delete.", "error");
-          }
-        }
+      if (owner) {
+        setSelectedKhatians((prev) =>
+          prev.map((k) => {
+            if (owner.khatianIds?.includes(k._id.toString())) {
+              const exists = k.owners.some((o) => o._id === owner._id);
+              if (!exists) {
+                return { ...k, owners: [...k.owners, owner] };
+              }
+            }
+            return k;
+          })
+        );
+        e.target.reset();
       }
     } catch (error) {
-      console.error("Delete error:", error);
-      Swal.fire("Error!", "Something went wrong.", "error");
+      console.error("Error adding owner:", error);
+      alert("নতুন মালিক যোগ করার সময় সমস্যা হয়েছে।");
     }
   };
+
+  // Delete buyer with confirmation
+  const handleDeleteNewBuyer = async (owner) => {
+    if (!owner._id) return;
+    const confirm = await Swal.fire({
+      title: "নিশ্চিত?",
+      text: "আপনি কি সত্যিই এই গ্রহীতা মোছা চান?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "হ্যাঁ, মোছুন",
+      cancelButtonText: "বাতিল",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await deleteData("/api/deleteowner", { id: owner._id });
+      if (res.success) {
+        setSelectedKhatians((prev) =>
+          prev.map((k) => {
+            if (owner.khatianIds?.includes(k._id.toString())) {
+              return {
+                ...k,
+                owners: k.owners.filter((o) => o._id !== owner._id),
+              };
+            }
+            return k;
+          })
+        );
+        Swal.fire("মোছা হয়েছে!", "গ্রহীতাকে সফলভাবে মোছা হয়েছে।", "success");
+      } else {
+        Swal.fire("বিফল!", res.error || "মোছা যায়নি।", "error");
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire("ত্রুটি!", "কিছু ভুল হয়েছে।", "error");
+    }
+  };
+  const handleTransferLand = async (e) => {
+    e.preventDefault();
+
+    const form = e.target;
+    const deedNo = form.deedNo.value;
+    const deedDate = form.deedDate.value; // dd-mm-yyyy
+    const subRegistry = form.subRegistry.value;
+
+    const [day, month, year] = deedDate.split("-");
+    const isoDate = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+
+    const result = [];
+
+    selectedKhatians.forEach((khatian) => {
+      const transferors = khatian.owners?.filter((o) => o.isTransferor) || [];
+
+      // Step 1: প্লট অনুযায়ী buyers-এর মোট নির্বাচিত জমি বের করা
+      const totalBuyerLandByPlot = {};
+      selectedBuyers.forEach((buyer) => {
+        const buyerKhatianInfo = buyer.selectedLandInfo.find(
+          (info) => info.khatianId === khatian._id
+        );
+        if (!buyerKhatianInfo) return;
+
+        buyerKhatianInfo.plots.forEach((p) => {
+          if (!totalBuyerLandByPlot[p.plot_no]) {
+            totalBuyerLandByPlot[p.plot_no] = 0;
+          }
+          totalBuyerLandByPlot[p.plot_no] += Number(p.selectedLand);
+        });
+      });
+
+      // Step 2: প্রতিটি দাতা ও ক্রেতার জন্য প্লটভিত্তিক হিসাব
+      transferors.forEach((transferor) => {
+        selectedBuyers.forEach((buyer) => {
+          const buyerKhatianInfo = buyer.selectedLandInfo.find(
+            (info) => info.khatianId === khatian._id
+          );
+          if (!buyerKhatianInfo) return;
+
+          const plots = [];
+
+          buyerKhatianInfo.plots.forEach((p) => {
+            const totalLandInPlot =
+              Number(
+                khatian.plots.find((pl) => pl.plot_no === p.plot_no)
+                  ?.totalLandInPlot
+              ) || 0;
+            const plotShare =
+              Number(
+                khatian.plots.find((pl) => pl.plot_no === p.plot_no)?.share
+              ) || 0;
+
+            const sellerPlotInfo = transferor.transferable.find(
+              (tp) => tp.plot_no === p.plot_no
+            );
+            if (!sellerPlotInfo) return;
+
+            const sellerLandInPlot = Number(sellerPlotInfo.selectedLand) || 0;
+
+            const buyerSelectedLandInPlot = Number(p.selectedLand) || 0;
+            const totalBuyerLandInPlot = totalBuyerLandByPlot[p.plot_no] || 0;
+
+            if (totalBuyerLandInPlot === 0 || totalLandInPlot === 0) return;
+
+            // Formula: (sellerLand * buyerSelectedLand) / totalBuyerLand
+            const landFromSeller =
+              (sellerLandInPlot * buyerSelectedLandInPlot) /
+              totalBuyerLandInPlot;
+
+            const share = landFromSeller / (totalLandInPlot * plotShare);
+            plots.push({
+              plot_no: p.plot_no,
+              share,
+            });
+          });
+
+          if (plots.length > 0) {
+            result.push({
+              khatianId: { $oid: khatian._id },
+              source: {
+                acquiredType: "ক্রয়",
+                from: { $oid: transferor._id },
+                deedNo: Number(deedNo),
+                deedDate: { $date: isoDate },
+                subRegistryOffice: subRegistry,
+              },
+              to: { $oid: buyer._id },
+              plots,
+            });
+          }
+        });
+      });
+    });
+
+    if (result) {
+      const res = await postData("/api/transfer", result);
+      console.log(res);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-8/12 w-full">
       {/* খতিয়ান যুক্ত করার ফর্ম */}
       <form
         onSubmit={handleAddKhatian}
-        className="flex flex-wrap items-center gap-4 bg-white shadow-md p-4"
+        className="bg-gray-200 flex gap-2 justify-between  border border-base-300 rounded-box p-4"
       >
         <select
-          defaultValue=""
           name="khatianId"
-          className="select select-bordered w-full md:w-auto"
+          defaultValue=""
+          className="select select-bordered w-full grow md:w-auto"
+          required
         >
-          <option value="">একটি খতিয়ান সিলেক্ট করুন</option>
+          <option value="" disabled>
+            একটি খতিয়ান সিলেক্ট করুন
+          </option>
           {khatianinfo?.map((khatian) => (
             <option key={khatian._id} value={khatian._id}>
-              জেলা: {khatian?.district} থানা: {khatian.thana} মৌজা:
-              {khatian.mouja} {khatian.khatian_type} {khatian?.khatian_No} নং
+              জেলা: {khatian.district} থানা: {khatian.thana} মৌজা:{" "}
+              {khatian.mouja} {khatian.khatian_type} {khatian.khatian_No} নং
               খতিয়ান
             </option>
           ))}
         </select>
-        <button className="btn btn-primary">ADD</button>
+        <button type="submit" className="btn btn-primary">
+          যোগ করুন
+        </button>
       </form>
 
-      {
-        /* নির্বাচিত খতিয়ানসমূহ */
-        selectedKhatians.length > 0 && (
-          <>
-            <div className="space-y-8">
-              {selectedKhatians?.map((khatian, idx) => (
-                <SelectedKhatian
-                  key={idx}
-                  khatian={khatian}
-                  idx={idx}
-                  selectedKhatians={selectedKhatians}
-                  setSelectedKhatians={setSelectedKhatians}
-                />
-              ))}
-            </div>
-            {selectedKhatians.filter((khatian) =>
-              khatian.owners.some((owner) => owner.isTransferor)
-            ).length > 0 && (
-              <div className="flex gap-4 p-4 bg-gray-200">
-                <div className="flex-1/2">
-                  <h3 className="text-lg font-semibold text-info mb-2 border-b">
-                    গ্রহীতা যোগ করুন
-                  </h3>
-                  <form className="" onSubmit={handleAddNewBuyer}>
-                    <fieldset className="fieldset">
-                      <legend className="fieldset-legend">নতুন গ্রহীতা:</legend>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          name="buyerName"
-                          className="input input-sm input-info"
-                          placeholder="মালিকের নাম, পিং/জং"
-                        />
-                        <button className="btn btn-info btn-soft btn-sm">
-                          যোগ করুন
-                        </button>
-                      </div>
-                    </fieldset>
-                  </form>
-                  {potentialBuyers.length > 0 && (
-                    <ul className="space-y-1 my-2">
-                      <h3 className="text-xs font-bold mb-2">
-                        মালিকগণের মধ্য থেকে নির্বাচন করুন
-                      </h3>
-                      {potentialBuyers?.map((buyer, idx) => {
-                        return (
-                          <li
-                            key={buyer._id}
-                            className="bg-gray-100 p-2 rounded flex justify-between items-center"
-                          >
-                            <span>
-                              {idx + 1}. {buyer.name}
-                            </span>
-                            {/* এখানে দুইটি কন্ডিশন হবে, যদি buyer.acquired?.length=== 0 অথবা buyer.acquired না থাকে */}
-                            {(!buyer.acquired ||
-                              buyer.acquired.length === 0) && (
-                              <button
-                                onClick={() => handleDeleteNewBuyer(buyer)}
-                                className="tooltip badge hover:badge-error badge-info badge-soft"
-                                data-tip="Click to delete"
-                              >
-                                New
-                              </button>
-                            )}
+      {/* নির্বাচিত খতিয়ানসমূহ */}
+      {selectedKhatians.length > 0 && (
+        <>
+          <div className="">
+            {selectedKhatians.map((khatian, idx) => (
+              <SelectedKhatian
+                key={khatian._id ?? idx}
+                khatian={khatian}
+                idx={idx}
+                selectedKhatians={selectedKhatians}
+                setSelectedKhatians={setSelectedKhatians}
+                khatianTotalSelectedMap={khatianTotalSelectedMap}
+                selectedBuyers={selectedBuyers}
+                setSelectedBuyers={setSelectedBuyers}
+              />
+            ))}
+          </div>
 
-                            <button
-                              onClick={() => handleAddExistingBuyer({ buyer })}
-                              className="btn btn-sm btn-outline btn-success"
-                            >
-                              <FaAnglesRight />
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-                <div className="w-px bg-gray-300 mx-2" />
-                {/* নির্বাচিত মালিক */}
-                <div className="flex-1/2">
-                  <h3 className="text-lg font-semibold text-blue-600 mb-2 border-b">
-                    নির্বাচিত গ্রহীতাগণ
-                  </h3>
-                  <ul className="space-y-1">
-                    {selectedBuyers?.map((buyer, idx) => {
-                      return (
-                        <li
-                          key={buyer._id}
-                          className="bg-gray-100 p-2 rounded flex justify-between items-center"
-                        >
-                          <span>
-                            {idx + 1}. {buyer.name}
-                          </span>
+          {/* গ্রহীতার তথ্য */}
+          {totalSelectedLand > 0 && (
+            <div className="collapse collapse-arrow">
+              <input type="checkbox" className="peer" />
+              <div className=" collapse-title font-bold text-primary text-2xl  flex justify-between items-baseline bg-gray-300   p-4">
+                <h2 className="">গ্রহীতার তথ্য:</h2>
+                <h2 className="mr-10">
+                  রসদীয় মোট জমি: {totalSelectedLand} শতাংশ
+                </h2>
+              </div>
+
+              <div className=" collapse-content bg-gray-200 space-y-4">
+                <div className="flex gap-4 p-4 rounded shadow  ">
+                  <div className="flex-1/2">
+                    <h3 className="text-lg font-semibold text-info mb-2 border-b">
+                      গ্রহীতা যোগ করুন
+                    </h3>
+                    <form onSubmit={handleAddNewBuyer}>
+                      <fieldset className="fieldset">
+                        <legend className="fieldset-legend">
+                          নতুন গ্রহীতা:
+                        </legend>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            name="buyerName"
+                            className="input input-sm input-info grow"
+                            placeholder="মালিকের নাম, পিং/জং"
+                            required
+                          />
                           <button
-                            onClick={() => handleRemoveBuyer({ buyer })}
-                            className="btn btn-sm btn-outline   btn-error"
+                            type="submit"
+                            className="btn btn-info btn-soft btn-sm w-40 "
                           >
-                            <FaAnglesLeft />
+                            যোগ করুন
                           </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                        </div>
+                      </fieldset>
+                    </form>
+                  </div>
+                  <div className="border"></div>
+                  <div className="flex-1/2">
+                    <h3 className="text-base text-info mb-2 font-bold">
+                      গ্রহীতার জমি নির্বাচনের ধরণ
+                    </h3>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="landTransferType"
+                        value="portionBased"
+                        checked={landTransferType === "portionBased"}
+                        className="radio radio-sm"
+                        onChange={(e) => setLandTransferType(e.target.value)}
+                      />
+                      <span>মোট রসদীয় জমির অংশ হারে</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="landTransferType"
+                        value="individualBased"
+                        checked={landTransferType === "individualBased"}
+                        className="radio radio-sm"
+                        onChange={(e) => setLandTransferType(e.target.value)}
+                      />
+                      <span>প্রত্যেক খতিয়ান হতে আলাদা আলাদা ভাবে</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 p-4 rounded shadow">
+                  <div className="flex-1/2">
+                    {potentialBuyers.length > 0 && remainingLand > 0 ? (
+                      <div className="space-y-1">
+                        <div className="font-semibold flex items-baseline justify-between border-b text-info">
+                          <h3 className="text-lg ">গ্রহীতা নির্বাচন করুন</h3>
+                          <p className="text-base">
+                            অবশিষ্ট জমি: {remainingLand.toFixed(4)} শতাংশ
+                          </p>
+                        </div>
+                        {potentialBuyers.map((buyer, idx) => (
+                          <BuyerCollapse
+                            key={buyer._id}
+                            buyer={buyer}
+                            idx={idx}
+                            selectedKhatians={selectedKhatians}
+                            landTransferType={landTransferType}
+                            totalSelectedLand={totalSelectedLand}
+                            buyersTotalLand={buyersTotalLand}
+                            selectedBuyers={selectedBuyers}
+                            handler={handleAddExistingBuyer}
+                            remainingLand={remainingLand}
+                            khatianTotalSelectedMap={khatianTotalSelectedMap}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <h2 className="text-error">অবশিষ্ট কোনো জমি নেই</h2>
+                    )}
+                  </div>
+                  <div className="border"></div>
+                  <div className="flex-1/2">
+                    <h3 className="text-lg font-semibold text-info mb-2 border-b">
+                      নির্বাচিত গ্রহীতাগণ
+                    </h3>
+                    <table className="table table-xs w-full">
+                      <thead>
+                        <tr>
+                          <th>ক্রঃ</th>
+                          <th>নাম</th>
+                          <th>রসদীয় জমি</th>
+                          <th>বাদ দিন</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedBuyers.map((buyer, idx) => (
+                          <SelectedBuyer
+                            key={buyer._id ?? idx}
+                            buyer={buyer}
+                            idx={idx}
+                            handler={handleRemoveBuyer}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            )}
-          </>
-        )
-      }
+            </div>
+          )}
+        </>
+      )}
+
+      {selectedBuyers.length > 0 && !remainingLand > 0 && (
+        <form
+          className="bg-gray-200 border border-base-300 rounded-box p-4 grid grid-cols-4 items-baseline gap-4"
+          onSubmit={handleTransferLand}
+        >
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">দলিল নং</legend>
+            <input
+              type="text"
+              className="input input-info"
+              placeholder="দলিল নং"
+              name="deedNo"
+            />
+          </fieldset>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">দলিলের তারিখ</legend>
+            <Flatpickr
+              value={date}
+              onChange={([selectedDate]) => setDate(selectedDate)}
+              options={{ dateFormat: "d-m-Y" }}
+              className="input input-info"
+              placeholder="দলিলের তারিখ"
+              name="deedDate"
+            />
+          </fieldset>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">সাব রেজিস্ট্রি অফিস</legend>
+            <input
+              type="text"
+              className="input input-info"
+              placeholder="সাব রেজিস্ট্রি অফিসের নাম"
+              name="subRegistry"
+            />
+          </fieldset>
+          <fieldset className="fieldset">
+            <button className="btn btn-info btn-soft hover:text-white">
+              Save
+            </button>
+          </fieldset>
+        </form>
+      )}
     </div>
   );
 };

@@ -9,6 +9,8 @@ const OwnerCollapse = ({
   landAmountType,
   isSelectedOwner,
 }) => {
+  const [totalInputVal, setTotalInputVal] = useState("");
+  // const [totalSelectedLand, setTotalSelectedLand] = useState(0);
   const [selectedLandInfo, setSelectedLandInfo] = useState(() => {
     if (!owner?.transferable || owner.transferable.length === 0) {
       return [];
@@ -18,6 +20,14 @@ const OwnerCollapse = ({
         selectedLand: p.selectedLand != null ? String(p.selectedLand) : "",
       }));
   });
+
+  const totalSelectedLand = useMemo(() => {
+    return selectedLandInfo.reduce((sum, item) => {
+      const val = parseFloat(item.selectedLand);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+  }, [selectedLandInfo]);
+
   useEffect(() => {
     if (!owner?.transferable || owner.transferable.length === 0) {
       setSelectedLandInfo([]);
@@ -34,42 +44,16 @@ const OwnerCollapse = ({
   }, [owner.transferable]);
 
   const filtered = owner.transferable?.filter((plot) => plot.isSelected) || [];
+
   const totalTransfarableLand = filtered.reduce(
     (sum, plot) => sum + Number(plot.transferableTotalLand || 0),
     0
   );
 
-  const totalSelectedLand = useMemo(() => {
-    return selectedLandInfo.reduce((sum, item) => {
-      const val = parseFloat(item.selectedLand);
-      return sum + (isNaN(val) ? 0 : val);
-    }, 0);
-  }, [selectedLandInfo, owner]);
-
   const handleSelectLand = (landInfo) => {
-    // আগের মানগুলো থেকে দরকারি ভ্যারিয়েবলগুলো আন
     if (landAmountType === "portionBased") {
       const { selectedLand } = landInfo;
 
-      // মোট transferable ল্যান্ড শূন্য হলে ভাঙবে না
-      if (!selectedLand || selectedLand === 0) {
-        alert("Total selected land is zero, can't compute portion.");
-        return;
-      }
-
-      // সিলেক্ট করা ল্যান্ড যত বড় হতে পারবে না মোট transferable এর চেয়ে
-      if (
-        Number(Number(selectedLand).toFixed(4)) >
-        Number(Number(totalTransfarableLand).toFixed(3))
-      ) {
-        setSelectedLandInfo([]);
-        alert(
-          "Total selected land could not be greater than total transferable land."
-        );
-        return;
-      }
-
-      // ভাগের অনুপাতে দিয়েই নতুন ইনফো বানানো
       const selectedShare = Number(selectedLand) / totalTransfarableLand;
 
       const updated =
@@ -78,21 +62,19 @@ const OwnerCollapse = ({
           .map((plot) => {
             return {
               plot_no: plot.plot_no,
-              selectedLand: plot.transferableTotalLand * selectedShare,
+              selectedLand: Number(
+                plot.transferableTotalLand * selectedShare
+              ).toFixed(3),
             };
           }) || [];
-
       setSelectedLandInfo(updated);
-
       return;
     }
 
-    // individualBased লজিক
     if (landAmountType === "individualBased") {
       const { plot_no, transferableTotalLand, selectedLand } = landInfo;
       const val = Number(selectedLand);
 
-      // খালি বা অপ্রচলিত ইনপুট হলে ওই এন্ট্রি রিমুভ করো
       if (selectedLand === "" || isNaN(val)) {
         setSelectedLandInfo((prev) =>
           prev.filter((item) => item.plot_no !== plot_no)
@@ -100,7 +82,6 @@ const OwnerCollapse = ({
         return;
       }
 
-      // ভ্যালিডেশন: transferable এর চেয়ে বড় হলে না করে ডিলিট
       if (val > transferableTotalLand) {
         alert(
           "Transferable land must be less than or equal to transferable total land."
@@ -111,7 +92,6 @@ const OwnerCollapse = ({
         return;
       }
 
-      // upsert: থাকলে replace, না থাকলে add
       setSelectedLandInfo((prev) => {
         const exists = prev.find((item) => item.plot_no === plot_no);
         if (exists) {
@@ -127,13 +107,13 @@ const OwnerCollapse = ({
 
   return (
     totalTransfarableLand > 0 && (
-      <div key={owner._id} className="collapse collapse-plus">
+      <div key={owner._id} className="collapse collapse-arrow">
         <input type="checkbox" className="peer" />
-        <div className="collapse-title shadow shadow-gray-300">
+        <div className="collapse-title">
           <h2 className="text-xs font-bold">
             {idx + 1}. {owner.name}
           </h2>
-          <p className="text-xs  text-info font-black">
+          <p className="text-xs text-info font-black">
             {isSelectedOwner
               ? `রসদীয় মোট জমি: ${Number(totalSelectedLand).toFixed(4)}`
               : `হস্তান্তরযোগ্য জমি: ${Number(totalTransfarableLand).toFixed(
@@ -141,44 +121,72 @@ const OwnerCollapse = ({
                 )}`}
           </p>
         </div>
-        <div className="collapse-content">
+        <div className="collapse-content flex items-center justify-between gap-2">
           {landAmountType === "portionBased" && (
-            <label className="label">
+            <label className="label grow">
               <span className="text-sm">রসদীয় জমি</span>
               {!isSelectedOwner && (
                 <span
-                  className="badge badge-soft badge-info"
-                  onClick={() =>
+                  className={`badge badge-soft font-bold badge-info
+                  `}
+                  onClick={() => {
+                    setSelectedLandInfo([]);
                     handleSelectLand({
                       selectedLand: totalTransfarableLand,
-                    })
-                  }
+                    });
+                    setTotalInputVal(totalTransfarableLand);
+                  }}
                 >
-                  All
+                  Select All
                 </span>
               )}
+              <div className="group">
+                {/* এই ইনপুটে একবার ভ্যালু দিলে পরে আর ইডিট করা যায় না। এটা ঠিক করে দাও */}
+                <input
+                  type="number"
+                  readOnly={isSelectedOwner}
+                  name="selectedTotalLand"
+                  className="input input-sm w-full"
+                  value={
+                    isSelectedOwner ? totalSelectedLand : totalInputVal ?? ""
+                  }
+                  onChange={(e) => {
+                    const inputVal = e.target.value;
 
-              <input
-                type="text"
-                name="selectedTotalLand"
-                className="input input-sm"
-                required
-                disabled={isSelectedOwner}
-                defaultValue={
-                  Number(totalSelectedLand).toFixed(4) > 0
-                    ? Number(totalSelectedLand).toFixed(4)
-                    : ""
-                }
-                onChange={(e) =>
-                  handleSelectLand({
-                    selectedLand: e.target.value,
-                  })
-                }
-              />
+                    // Reset previous selection
+                    setSelectedLandInfo([]);
+
+                    // Input validation
+                    if (!inputVal || Number(inputVal) <= 0) {
+                      setTotalInputVal(""); // Clear if invalid
+                      return;
+                    }
+
+                    const val = Number(Number(inputVal).toFixed(4));
+                    const max = Number(
+                      Number(totalTransfarableLand).toFixed(4)
+                    );
+
+                    if (val > max) {
+                      alert(
+                        "Total selected land could not be greater than total transferable land."
+                      );
+                      setTotalInputVal("");
+                      return;
+                    }
+
+                    // ✅ Save to state and send to handler
+                    setTotalInputVal(inputVal);
+                    handleSelectLand({
+                      selectedLand: inputVal,
+                    });
+                  }}
+                />
+              </div>
             </label>
           )}
           {landAmountType === "individualBased" && (
-            <table className="table table-xs">
+            <table className="table table-xs grow">
               <thead>
                 <tr>
                   <th>দাগ নং</th>
@@ -221,7 +229,7 @@ const OwnerCollapse = ({
                             inputMode="decimal"
                             name="selectedTotalLand"
                             className="input input-sm"
-                            disabled={isSelectedOwner}
+                            readOnly={isSelectedOwner}
                             onChange={(e) =>
                               handleSelectLand({
                                 plot_no: plot.plot_no,
@@ -246,7 +254,7 @@ const OwnerCollapse = ({
             </table>
           )}
           <button
-            disabled={!totalSelectedLand && !isSelectedOwner}
+            disabled={totalSelectedLand === 0 && !isSelectedOwner}
             onClick={() => {
               handler({
                 khatianId: khatian._id,
@@ -254,8 +262,9 @@ const OwnerCollapse = ({
                 selectedLandInfo,
               });
               setSelectedLandInfo([]);
+              setTotalInputVal("");
             }}
-            className={`btn btn-sm btn-outline ${
+            className={`btn btn-sm btn-outline  ${
               isSelectedOwner ? "btn-error" : "btn-success"
             }`}
           >

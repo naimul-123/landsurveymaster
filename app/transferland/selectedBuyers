@@ -1,0 +1,16 @@
+[
+  {
+    "buyer_id": "ownerId",
+    "selectedLand": [
+      {
+        "khatianId": "khatianId",
+        "plots": [
+          {
+            "plot_no": 154,
+            "totalSelectedLand": 15
+          }
+        ]
+      }
+    ]
+  }
+]
